@@ -46,6 +46,9 @@ globals
   month-mean-temp
   month-max-temp
   model-percent-diff
+  total-energy-consumption
+  new-cost
+  total-added-capacity
 ]
 breed [wards ward]
 breed [BRmanagers BRmanager]
@@ -117,6 +120,7 @@ wards-own
   other-municipal-demand
   other-municipal-usage
   reduction-household
+  water-bill-this-month
 ]
 
 patches-own
@@ -172,15 +176,15 @@ to setup
     set volume-this-month 833388
   ]
   create-SRmanagers 1 [set generation-capacity 180]
-  set dam-inflow-monthly [-3946  -4534 -15426  18535  30979 207643 118213  45156  30054  31341  16926  13210 -11892 -13524   8313
-    39344  54305 109470  62115  51845  39288  30146  29651   1922 -11503  -3371  -9852  15244  29656 136839
-    111435  76244  72084  24522   6834   5097  -9201 -13016 -11072  28943  28306  67024 173508 185630  94650
-    31398  16158 -11437 -10866  -4691   -764  28554  32333 150717 144549 104123  31837  17705  43953  -6785
-    25068  -4331  -8691  19009  45421 189041 101325  32223  13062   6382  -1243  -3809  -4902  12724 -16563
-    -13051 -11433  56369 116734 115931  37017  38021 -16844 -12148   3047 -16435   8999  19227  20857  68766
-    144368 105964  51648  41917 -10343 -12876   -562  -2569   -452   -589  -4942  51382  53879  77581  56702
-    30685   1435   9823   7163  25645   3130  10079  64453 197680  91926 113151 105600   8604 -11230   1373]
-
+;  set dam-inflow-monthly [-3946  -4534 -15426  18535  30979 207643 118213  45156  30054  31341  16926  13210 -11892 -13524   8313
+;    39344  54305 109470  62115  51845  39288  30146  29651   1922 -11503  -3371  -9852  15244  29656 136839
+;    111435  76244  72084  24522   6834   5097  -9201 -13016 -11072  28943  28306  67024 173508 185630  94650
+;    31398  16158 -11437 -10866  -4691   -764  28554  32333 150717 144549 104123  31837  17705  43953  -6785
+;    25068  -4331  -8691  19009  45421 189041 101325  32223  13062   6382  -1243  -3809  -4902  12724 -16563
+;    -13051 -11433  56369 116734 115931  37017  38021 -16844 -12148   3047 -16435   8999  19227  20857  68766
+;    144368 105964  51648  41917 -10343 -12876   -562  -2569   -452   -589  -4942  51382  53879  77581  56702
+;    30685   1435   9823   7163  25645   3130  10079  64453 197680  91926 113151 105600   8604 -11230   1373]
+  set dam-inflow-monthly [-3946]
   set municipal-water-use [31837 32620 34875 30150 26722 25140 25947 26722 26040 27652 31050 33945 35588 31640 34348 28830 27714
     24180 23901 24583 24570 28427 28650 34131 35650 32144 35309 30450 26164 25470 24304 24800 24210 27652
     29010 32302 33883 34104 34689 29730 27063 23790 23467 23653 23730 26629 28230 32612 35061 31444 32829
@@ -242,7 +246,8 @@ to setup
     5203.2705  3078.8421  3101.1490   484.5671  9410.0578  1296.1948]
 
   set month-ratio [1.1641153 1.2207191 1.1694553 1.0487718 0.9280883 0.8533286 0.8319687 0.8426486 0.8576006 0.9409042 1.0231399 1.1192595] ;this is month to month ratio compared to annual average
-  set month-mean-temp [71 72 69 64 60 56 55 56 58 62 66 69]
+;  set month-mean-temp [71 72 69 64 60 56 55 56 58 62 66 69]
+  set month-mean-temp [21.7 22.2 20.6 17.8 15.6 13.3 12.8 13.3 14.4 16.7 18.9 20.6]
   set month-max-temp [80 81 79 74 69 65 64 65 67 72 75 79]
   let ward-index 1
   create-wards 94 [
@@ -279,6 +284,31 @@ to setup
     set ward-index ward-index + 1
 
   ] ; set up the water users for 94 wards
+  if Scenario = 4
+  [let desal-cost 36
+  let gw-cost 7.5
+  let sw-cost 5
+  let wwr-cost 7.5
+
+  let desal-energy-consumption 4
+  let wwr-energy-consumption 2
+
+  let sw-existing-capacity 1350
+  let desal-capacity 120
+  let gw-capacity 100
+  let sw-added-capacity 60
+  let wwr-capacity 70; wastewater reuse
+  set total-added-capacity (wwr-capacity + desal-capacity  + gw-capacity); MLD the added capacity does not include surface water, the added surface water is reflected in the expanded dam storage capacity
+; let added-volume total-added-capacity; from MLD to monthly inflow
+  set new-cost (gw-cost * gw-capacity + desal-cost * desal-capacity + sw-cost * (sw-added-capacity + sw-existing-capacity) + wwr-cost * wwr-capacity) / (total-added-capacity + sw-existing-capacity)
+  print new-cost
+  set total-energy-consumption (desal-energy-consumption * desal-capacity * 1000 + wwr-energy-consumption * wwr-capacity * 1000) / 1000 ; convert from per kL to per ML and from kwh to mwh
+  print total-energy-consumption   ; unit in MW
+  print "mwh per day"
+  set water-price new-cost * (1 + profit)
+  print water-price
+  ]
+
 
 
 ;  load-rain-temp-history
@@ -292,9 +322,22 @@ to go
 ;  calculate-municipal-demand
 ;  ask patches with [landtype = 3]
 ;  [show elevation]
-  ifelse Scenario-1? ;if the switch is on, it goes to scenario 1. else it goes to scenario 2
-  [scenario-one]
-  [scenario-two]
+;  ifelse Scenario-1? ;if the switch is on, it goes to scenario 1. else it goes to scenario 2
+  ifelse Scenario = 1
+  [
+    scenario-one
+  ] ;scenario 1
+  [
+    ifelse Scenario = 2
+    [
+      scenario-two
+    ];scenario 2
+    [
+      ifelse Scenario = 3
+      [scenario-three];scenario 3
+      [scenario-four];scenario 4
+    ]; Scenario 3, 4
+  ] ; Scenario 2, 3, 4
 
   set month month + 1
   ifelse month > 12
@@ -302,12 +345,17 @@ to go
     set year year + 1
     let current-pop (population * (1 + growth-rate))
     set population current-pop
+    if ticks > 118
+    [set ag-water-use sentence ag-water-use [30892	29393	26748	14280	1659	805	806	806	805	4123	8900	24671]
+     set days-in-month sentence days-in-month [31 28 31 30 31 30 31 31 30 31 30 31]
+    ]
   ]
   []
+  print(ticks)
 
   tick ;total month
 ;  set tickss ticks
-  if ticks = 120   [stop]
+;  if ticks = 120   [stop]
 
 end
 
@@ -320,7 +368,7 @@ to scenario-one
   set V-Display V
   set V-monthly lput V V-monthly
   print V
-  let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
+  let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the agricultural water usage
   ;calculate municipal demand we use average monthly city demand predrought
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;this is the initial municipal model in the WSC paper
@@ -425,7 +473,285 @@ to scenario-two
   let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
   ;calculate municipal demand we use average monthly city demand predrought. Initial model in the wsc paper
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  let ID item ticks individual-demand
+;  let ID item ticks individual-demand
+  let ID 200
+  ifelse ticks > 119
+  [set ID 200]
+  [set ID item ticks individual-demand]
+
+
+  print "individual-demand"
+  let DAY item ticks days-in-month
+  print DAY
+  print "days in a month"
+  let POP population
+    print POP
+  print "population in millions"
+  set mu-demand (ID * DAY * POP)
+  let mu-D mu-demand
+  print mu-D
+  let CP-temp item 0 [item ticks temp-monthly] of Weathermans with [identity = "Cape_Town"]
+  let mean-Temp item (month - 1) month-mean-temp
+  let is-hot? FALSE
+  if CP-temp > mean-Temp
+  [
+;    let increase-ratio random-normal demand-increase-rate 0.001
+    set is-hot? TRUE
+;    set mu-D ( mu-D * ( 1 + demand-increase-rate * (CP-temp - mean-Temp) ) ) ; change the
+    print CP-temp
+    Print mean-Temp
+    print "High Temp Warning !!!!!!!!!!!!!Demand More!!!!!!!!!!!!!!!!!"
+
+  ]
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ; new model using heterogenous model to calculate municipal water demand
+  ;municipal-demand ; submodel caculate total unrestricted water demand
+  ;let's write the code here and
+;  let TOT-household-demand (sum [ domestic-demand * (1 + growth-rate) ^ (year - 2009) * households-in-ward ] of wards ) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) ; sum (annual demand per day per ward * growthrate )* days in a month * month/annual ratio
+;  print TOT-household-demand
+;  print "total household demand"
+;  let TOT-other-municipal-demand ( sum [other-municipal-demand] of wards ) * (item (ticks) days-in-month) * (item (month - 1) month-ratio)
+;  print TOT-other-municipal-demand
+;  print "tot other municipal demand"
+;  let TOT-urban-demand TOT-household-demand + TOT-other-municipal-demand
+;  print TOT-urban-demand
+;  print "tot urban demand"
+;  let avg-ep mean [ ep ] of wards
+;  print avg-ep
+;  print "average ep"
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; then in the next we need to calculate a allocation reduction allocation is simply calculated by a demand reduction ratio
+  ifelse ticks < 12
+  [
+    print "Beginning year, no restriction"
+    set ag-allocation-this-month ag-D
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    set mu-allocation-this-month mu-D; original model
+    ask wards
+      [
+        set other-municipal-usage (other-municipal-demand * (item (ticks) days-in-month) * (item (month - 1) month-ratio))
+;        let change-in-price (new-price - water-price)
+        ;; ask the water demand to change
+        let domestic-demand-current-month domestic-demand
+        if is-hot? = TRUE
+        [
+          ifelse income < 100000
+          [
+            set domestic-demand-current-month domestic-demand * (1 + demand-increase-rate * (CP-temp - mean-Temp));increase initial demand
+          ]
+          [
+            ;do nothing
+          ]
+        ]
+        set domestic-usage (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
+        ;set up reduction ratio, in this case zero
+        set reduction-household 0
+        ; calculate water bill for each household
+        let individual-usage domestic-usage / households-in-ward
+        set water-bill-this-month individual-usage * water-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+      ]
+      let TOT-household-usage sum [ domestic-usage ] of wards
+      print TOT-household-usage
+      print "total household usage under restriction"
+      let TOT-other-municipal-usage sum [other-municipal-usage] of wards
+      print TOT-other-municipal-usage
+      print "tot other municipal usage under restriction"
+      let TOT-urban-usage TOT-household-usage + TOT-other-municipal-usage
+      print TOT-urban-usage
+      print "tot urban usage under restriction diversified"
+      print mu-D
+      print "tot urban usage original"
+      set model-percent-diff abs (TOT-urban-usage - mu-D) / mu-D
+      set mu-allocation-this-month TOT-urban-usage
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+    set water-price-this-month water-price
+      ask one-of SRmanagers
+      [set actual-generation 180
+    set energy-output-this-month actual-generation]
+  ]; the beginning year, no data to compare
+  [
+    let InF-this-year item ticks dam-inflow-monthly
+    let InF-last-year item (ticks - 12) dam-inflow-monthly
+    let V-normal item (month - 1) avg-V
+    set reduction-this-month 0
+    set reduction-monthly lput reduction-this-month reduction-monthly
+;    let RF-this-year  [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Strand"])
+;    let RF-last-year  [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"]) + [item ticks rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Strand"])
+;
+;    let RF-last-year [item (ticks - 12) rainfall-monthly] of Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"])
+;    ifelse InF-this-year > InF-last-year
+;    ifelse RF-this-year > RF-last-year
+    ifelse V > 0.9 * V-normal
+    [
+      print "enough water, no restriction"
+      set ag-allocation-this-month ag-D
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;      set mu-allocation-this-month mu-D; original model
+      ask wards
+      [
+        set other-municipal-usage (other-municipal-demand * (item (ticks) days-in-month) * (item (month - 1) month-ratio))
+        ;        let change-in-price (new-price - water-price)
+        ;; ask the water demand to change
+        let domestic-demand-current-month domestic-demand
+        if is-hot? = TRUE
+        [
+          ifelse income < 100000
+          [
+            set domestic-demand-current-month domestic-demand * (1 + demand-increase-rate * (CP-temp - mean-Temp));increase initial demand
+          ]
+          [
+            ;do nothing
+          ]
+        ]
+        set domestic-usage (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
+        ;set up reduction ratio in this case zero
+        set reduction-household 0
+
+        ; calculate water bill for each household
+        let individual-usage domestic-usage / households-in-ward
+        set water-bill-this-month individual-usage * water-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+      ]
+      let TOT-household-usage sum [ domestic-usage ] of wards
+      print TOT-household-usage
+      print "total household usage under restriction"
+      let TOT-other-municipal-usage sum [other-municipal-usage] of wards
+      print TOT-other-municipal-usage
+      print "tot other municipal usage under restriction"
+      let TOT-urban-usage TOT-household-usage + TOT-other-municipal-usage
+      print TOT-urban-usage
+      print "tot urban usage under restriction diversified"
+      print mu-D
+      print "tot urban usage original"
+      set model-percent-diff abs (TOT-urban-usage - mu-D) / mu-D
+      set mu-allocation-this-month TOT-urban-usage
+
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+      set water-price-this-month water-price
+      set reduction-this-month 0
+      set reduction-monthly lput reduction-this-month reduction-monthly
+      ask one-of SRmanagers
+      [set actual-generation 180
+      set energy-output-this-month actual-generation]
+    ];no restriction
+    [
+      print "adaptive restriction"
+
+      let reduction (1 - (abs (V / V-normal)))
+      set reduction-this-month reduction
+      ;      let reduction (1 - (abs (RF-this-year / (RF-last-year) ) ) )
+      let new-price water-price - water-price * reduction / water-price-elasticity
+      set water-price-this-month new-price
+;      set water-price-history lput new-price water-price-history
+
+      set reduction-monthly lput reduction reduction-monthly
+      print reduction
+      set ag-allocation-this-month ( 1 - reduction ) * ag-D; agricultural model
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;      set mu-allocation-this-month (1 - reduction) * mu-D; municipal water allocation calculation in the original model
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;new municipal allocation
+;      cal-municipal-demand-s2
+      ask wards
+      [
+        set other-municipal-usage (other-municipal-demand * (item (ticks) days-in-month) * (item (month - 1) month-ratio)) * (1 - reduction)
+        ;; ask the water demand to change
+        let domestic-demand-current-month domestic-demand
+        if is-hot? = TRUE
+        [
+          ifelse income < 100000
+          [
+            set domestic-demand-current-month domestic-demand * (1 + demand-increase-rate * (CP-temp - mean-Temp));increase initial demand
+          ]
+          [
+            ;do nothing
+          ]
+        ]
+        let change-in-price (new-price - water-price)
+        let month-demand (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
+        set domestic-usage (month-demand + month-demand * change-in-price * ep / water-price)
+        ;calculate reduction ratio for the wards,
+        set reduction-household (month-demand - domestic-usage) / month-demand
+
+        ; calculate water bill for each household
+        let individual-usage domestic-usage / households-in-ward
+        set water-bill-this-month individual-usage * new-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+      ]
+      let TOT-household-usage sum [ domestic-usage ] of wards
+      print TOT-household-usage
+      print "total household usage under restriction"
+      let TOT-other-municipal-usage sum [other-municipal-usage] of wards
+      print TOT-other-municipal-usage
+      print "tot other municipal usage under restriction"
+      let TOT-urban-usage TOT-household-usage + TOT-other-municipal-usage
+      print TOT-urban-usage
+      print "tot urban usage under restriction diversified"
+      print mu-D
+      print "tot urban usage original"
+      set model-percent-diff abs (TOT-urban-usage - (1 - reduction) * mu-D) / mu-D ; (1 - reduction) * mu-D) is the reduced water usage in the original model
+      set mu-allocation-this-month TOT-urban-usage
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+
+      ifelse V > 0.2 * [upper-limit] of one-of Watermanagers
+      [
+        ask one-of SRmanagers
+        [set actual-generation 180
+        set energy-output-this-month actual-generation]
+      ];no impact on hydro
+
+      [
+        ifelse ( V > 0.15 * [upper-limit] of one-of Watermanagers) ; for the hydropower dam, if between 20% and 15% of V, it will decrease the generation capacity
+        [
+          ask one-of SRmanagers
+          [
+            let ratio (V / [upper-limit] of one-of Watermanagers )
+            set actual-generation (20 * ratio - 3) * generation-capacity
+            set energy-output-this-month actual-generation
+            ;need to save generation history
+          ]
+        ];partial generation
+
+        [
+          ask one-of SRmanagers
+          [set actual-generation 0
+          set energy-output-this-month actual-generation]
+        ];below 15% failure
+
+      ]; impact on hydro
+
+    ]
+  ]
+  set total-allocation-monthly lput total-allocation-this-month total-allocation-monthly
+  set ag-allocation-monthly lput ag-allocation-this-month ag-allocation-monthly
+  set mu-allocation-monthly lput mu-allocation-this-month mu-allocation-monthly
+  set generation-history lput ([actual-generation] of one-of SRmanagers) generation-history
+  set water-price-history lput water-price-this-month water-price-history
+
+  update-reservoir-elevation
+
+
+end
+
+to scenario-three ; set free water for indigenous households
+  let V [volume-this-month] of one-of Watermanagers
+  if V > 921000
+  [set V 921000]
+  set V-Display V
+  set V-monthly lput V V-monthly
+  print V
+  let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
+  ;calculate municipal demand we use average monthly city demand predrought. Initial model in the wsc paper
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  let ID 200
+  ifelse ticks > 119
+  [set ID 200]
+  [set ID item ticks individual-demand]
   print ID
   print "individual-demand"
   let DAY item ticks days-in-month
@@ -496,6 +822,15 @@ to scenario-two
         set domestic-usage (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
         ;set up reduction ratio, in this case zero
         set reduction-household 0
+        ifelse income < 30001
+        [
+          let individual-usage domestic-usage / households-in-ward
+          set water-bill-this-month ( individual-usage * 1000 - 6) * water-price  ; individual usage multiply by 1000 because the water price is in kl and usage is in ML
+        ];indigenous households free 6k water
+        [
+          let individual-usage domestic-usage / households-in-ward
+          set water-bill-this-month individual-usage * water-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+        ]
       ]
       let TOT-household-usage sum [ domestic-usage ] of wards
       print TOT-household-usage
@@ -555,6 +890,16 @@ to scenario-two
         set domestic-usage (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
         ;set up reduction ratio in this case zero
         set reduction-household 0
+        ; calculate water bill for each household
+        ifelse income < 30001
+        [
+          let individual-usage domestic-usage / households-in-ward
+          set water-bill-this-month ( individual-usage * 1000 - 6) * water-price  ; individual usage multiply by 1000 because the water price is in kl and usage is in ML
+        ];indigenous households free 6k water
+        [
+          let individual-usage domestic-usage / households-in-ward
+          set water-bill-this-month individual-usage * water-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+        ]
       ]
       let TOT-household-usage sum [ domestic-usage ] of wards
       print TOT-household-usage
@@ -616,7 +961,24 @@ to scenario-two
         let month-demand (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
         set domestic-usage (month-demand + month-demand * change-in-price * ep / water-price)
         ;calculate reduction ratio for the wards,
+        if income < 30001
+        [
+          if domestic-usage / households-in-ward < (6 / 1000 )
+          [set domestic-usage (6 / 1000 ) * households-in-ward ]; give indiginous households free basic water even under drought conditions
+        ];free water for 6 kl
         set reduction-household (month-demand - domestic-usage) / month-demand
+        if reduction-household < 0
+        [set reduction-household 0]
+        ifelse income < 30001
+        [
+          let individual-usage domestic-usage / households-in-ward
+          set water-bill-this-month ( individual-usage * 1000 - 6) * new-price  ; individual usage multiply by 1000 because the water price is in kl and usage is in ML
+        ];indigenous households free 6k water
+        [
+          let individual-usage domestic-usage / households-in-ward
+          set water-bill-this-month individual-usage * new-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+        ]
+
       ]
       let TOT-household-usage sum [ domestic-usage ] of wards
       print TOT-household-usage
@@ -668,11 +1030,207 @@ to scenario-two
   set mu-allocation-monthly lput mu-allocation-this-month mu-allocation-monthly
   set generation-history lput ([actual-generation] of one-of SRmanagers) generation-history
   set water-price-history lput water-price-this-month water-price-history
+; commeent out update reservoir because this process is now done at the big six
+  update-reservoir-elevation
+end
+
+to scenario-four
+  ;this is augmentation from new water sources
+  ;desalination 120 MLD potential 150MLD energy cost 3.5 - 4 kwh/kL monetary cost: 12-36 R/kL
+  ;groundwater 100 MLD potential 200 MLD cost 7.5 R/kL
+  ;surfacewater 60 MLD 5 R/kL
+  ;wastewater reuse 70 MLD energy cost: 2kwh/kL, monetary cost: 7.5 R/kL
+
+   ;;;;;;;;;;;;;;;;;;;;;;
+;  the following has been moved to set up
+;  let desal-cost 36
+;  let gw-cost 7.5
+;  let sw-cost 5
+;  let wwr-cost 7.5
+;
+;  let desal-energy-consumption 4
+;  let wwr-energy-consumption 2
+;
+;  let sw-existing-capacity 1350
+;  let desal-capacity 120
+;  let gw-capacity 100
+;  let sw-added-capacity 60
+;  let wwr-capacity 70; wastewater reuse
+;  let total-added-capacity (wwr-capacity + desal-capacity  + gw-capacity); MLD the added capacity does not include surface water, the added surface water is reflected in the expanded dam storage capacity
+;  let added-volume total-added-capacity; from MLD to monthly inflow
+;  let new-cost (gw-cost * gw-capacity + desal-cost * desal-capacity + sw-cost * (sw-added-capacity + sw-existing-capacity) + wwr-cost * wwr-capacity) / (total-added-capacity + sw-existing-capacity)
+;  print new-cost
+;  let total-energy-consumption (desal-energy-consumption * desal-capacity * 1000 + wwr-energy-consumption * wwr-capacity * 1000) / 1000 ; convert from per kL to per ML and from kwh to mwh
+;  print total-energy-consumption
+;  print "mwh per day"
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; here is the apdatation of the model from previous policy 2 without any water restrictions
+;  let new-normal-reduction 0.2
+  let DAY item ticks days-in-month
+  print DAY
+
+  let V [volume-this-month] of one-of Watermanagers
+  if V >  942900 ; original capacity 921000 + new augmented (60 * 365) in ML
+  [set V 942900]
+  set V (V + total-added-capacity * DAY)
+
+  set V-Display V
+  set V-monthly lput V V-monthly
+  print V
+  let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
+  ;calculate municipal demand we use average monthly city demand predrought. Initial model in the wsc paper
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  let ID 200
+  ifelse ticks > 119
+  [set ID 200]
+  [set ID item ticks individual-demand]
+  print ID
+  print "individual-demand"
+
+  print "days in a month"
+  let POP population
+    print POP
+  print "population in millions"
+  set mu-demand (ID * DAY * POP)
+  let mu-D mu-demand
+  print mu-D
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;module for demand change as a response to temperature rise
+  let CP-temp item 0 [item ticks temp-monthly] of Weathermans with [identity = "Cape_Town"]
+  let mean-Temp item (month - 1) month-mean-temp
+  let is-hot? FALSE
+  if CP-temp > mean-Temp
+  [
+;    let increase-ratio random-normal demand-increase-rate 0.001
+    set is-hot? TRUE
+;    set mu-D ( mu-D * ( 1 + demand-increase-rate * (CP-temp - mean-Temp) ) ) ; change the
+    print CP-temp
+    Print mean-Temp
+    print "High Temp Warning !!!!!!!!!!!!!Demand More!!!!!!!!!!!!!!!!!"
+
+  ]
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ; new model using heterogenous model to calculate municipal water demand
+  ;municipal-demand ; submodel caculate total unrestricted water demand
+  ;let's write the code here and
+;  let TOT-household-demand (sum [ domestic-demand * (1 + growth-rate) ^ (year - 2009) * households-in-ward ] of wards ) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) ; sum (annual demand per day per ward * growthrate )* days in a month * month/annual ratio
+;  print TOT-household-demand
+;  print "total household demand"
+;  let TOT-other-municipal-demand ( sum [other-municipal-demand] of wards ) * (item (ticks) days-in-month) * (item (month - 1) month-ratio)
+;  print TOT-other-municipal-demand
+;  print "tot other municipal demand"
+;  let TOT-urban-demand TOT-household-demand + TOT-other-municipal-demand
+;  print TOT-urban-demand
+;  print "tot urban demand"
+;  let avg-ep mean [ ep ] of wards
+;  print avg-ep
+;  print "average ep"
+
+  set ag-allocation-this-month ag-D * (1 - new-normal-reduction)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;    set mu-allocation-this-month mu-D; original model
+  ask wards
+    [
+      set other-municipal-usage (other-municipal-demand * (1 - new-normal-reduction) * (item (ticks) days-in-month) * (item (month - 1) month-ratio))
+      ;        let change-in-price (new-price - water-price)
+      ;; ask the water demand to change
+      let domestic-demand-current-month domestic-demand * (1 - new-normal-reduction)
+      if is-hot? = TRUE
+      [
+        ifelse income < 100000
+        [
+          set domestic-demand-current-month domestic-demand * (1 + demand-increase-rate * (CP-temp - mean-Temp));increase initial demand
+        ]
+        [
+          ;do nothing
+        ]
+      ]
+      set domestic-usage (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
+      ;set up reduction ratio, in this case zero
+      set reduction-household 0
+      ; calculate water bill for each household
+      let individual-usage domestic-usage / households-in-ward
+      set water-bill-this-month individual-usage * water-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+  ]
+  let TOT-household-usage sum [ domestic-usage ] of wards
+  print TOT-household-usage
+  print "total household usage under restriction"
+  let TOT-other-municipal-usage sum [other-municipal-usage] of wards
+  print TOT-other-municipal-usage
+  print "tot other municipal usage under restriction"
+  let TOT-urban-usage TOT-household-usage + TOT-other-municipal-usage
+  print TOT-urban-usage
+  print "tot urban usage under restriction diversified"
+  print mu-D
+  print "tot urban usage original"
+  set model-percent-diff abs (TOT-urban-usage - mu-D) / mu-D
+  set mu-allocation-this-month TOT-urban-usage
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  set total-allocation-this-month ag-allocation-this-month + mu-allocation-this-month
+  set water-price-this-month water-price
+;  ask one-of SRmanagers
+;  [set actual-generation 180
+;  set energy-output-this-month actual-generation]
+       ifelse V > 0.2 * [upper-limit] of one-of Watermanagers
+      [
+        ask one-of SRmanagers
+        [set actual-generation 180
+        set energy-output-this-month actual-generation]
+      ];no impact on hydro
+
+      [
+        ifelse ( V > 0.15 * [upper-limit] of one-of Watermanagers) ; for the hydropower dam, if between 20% and 15% of V, it will decrease the generation capacity
+        [
+          ask one-of SRmanagers
+          [
+            let ratio (V / [upper-limit] of one-of Watermanagers )
+            set actual-generation (20 * ratio - 3) * generation-capacity
+            set energy-output-this-month actual-generation
+            ;need to save generation history
+          ]
+        ];partial generation
+
+        [
+          ask one-of SRmanagers
+          [set actual-generation 0
+          set energy-output-this-month actual-generation]
+        ];below 15% failure
+
+      ]; impact on hydro
+
+  set total-allocation-monthly lput total-allocation-this-month total-allocation-monthly
+  set ag-allocation-monthly lput ag-allocation-this-month ag-allocation-monthly
+  set mu-allocation-monthly lput mu-allocation-this-month mu-allocation-monthly
+  set generation-history lput ([actual-generation] of one-of SRmanagers) generation-history
+  set water-price-history lput water-price-this-month water-price-history
 
   update-reservoir-elevation
-
-
 end
+
+to-report vol
+  report total-allocation-this-month
+end
+
+to-report bill-30k
+  report mean [water-bill-this-month] of wards with [income = 30000]
+end
+
+to-report bill-57k
+  report mean [water-bill-this-month] of wards with [income = 57500]
+end
+
+to-report bill-117k
+  report mean [water-bill-this-month] of wards with [income = 117000]
+end
+
+to-report bill-200k
+  report mean [water-bill-this-month] of wards with [income > 200000]
+end
+
+
 
 to-report reduction-30k
   report mean [reduction-household] of wards with [income = 30000]
@@ -844,12 +1402,19 @@ to irrigate-land
   ;Voëlvlei Reservoir, TR/5 stands for the Theewaterkloof Reservoir, SR/6 represents Steenbras Reservoir, C/7 Stands for Cape Town,
   ;SW/8 stands for Swartland, D/9 stands for Drakenstein, S/10 stands for Stellenbosch, B/11 stands for Breede Valley, L/12 stands for Langeberg,
   ;W/13 stands for Witzenberg
+
+  ;The irrigation logic is to first ask the weatherman to set the soil water deficit of the month to SW-this-month,
+  ;whoever (winelands) follow the weather man will have its SW.
+  ;To change the Weathermans to the wine regions and Cape Town.
+  ; station-names: ["Breed_Valley" "Langberg" "Witzenberg" "Swartland" "Drakenstein" "Cape_Town" "Stellenbosch"]
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"])
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"]) ;original code
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Breed_Valley"]) ;og code Worcester was used
   [
         set SW-this-month item ticks SW-monthly
-
   ]
+
   ask patches with [landtype = 11] ;for breede valley
   [
 
@@ -866,6 +1431,14 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month [irrigation-demand] of one-of patches with [landtype = 11]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Langberg"]) ;og code Worcester was used
+  [
+        set SW-this-month item ticks SW-monthly
+  ]
+
   ask patches with [landtype = 12] ; for langeberg
   [
     set SWD AWC - SW-this-month
@@ -881,12 +1454,14 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 12]
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"])
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Witzenberg"]) ;og code porterville was used
   [
       set SW-this-month item ticks SW-monthly
-
   ]
+
   ask patches with [landtype = 13] ; for Witzenberg
   [
 
@@ -903,12 +1478,14 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 13]
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Malmesbury"])
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Malmesbury"]); og code malsebury was used for swartland
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Swartland"])
   [
       set SW-this-month item ticks SW-monthly
-
   ]
+
   ask patches with [landtype = 8] ; for Swartland
   [
 
@@ -925,8 +1502,10 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 8]
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"])
+;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"])
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Drakenstein"])
   [
       set SW-this-month item ticks SW-monthly
 
@@ -948,7 +1527,8 @@ to irrigate-land
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 9]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Ct_AWS"])
+;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Ct_AWS"])
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Cape_Town"])
   [
       set SW-this-month item ticks SW-monthly
 
@@ -968,7 +1548,12 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 7]
-    ask patches with [landtype = 10] ; for Stellenbosch
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Stellenbosch"])
+  [
+      set SW-this-month item ticks SW-monthly
+  ]
+  ask patches with [landtype = 10] ; for Stellenbosch
   [
     set SWD AWC - SW-this-month
     if SWD < 0 [set SWD 0]
@@ -1017,9 +1602,14 @@ end
 
 to load-rain-temp-history
   let station-name []
-  set station-name ["Cape_Point" "Cape_Town" "Ct_AWS" "Excelsior_Ceres" "Malmesbury" "Molteno_Reservoir" "Paarl"
-                    "Porterville" "Robbeneiland" "Slangkop" "Strand" "Worcester"]
-  file-open "rainfall_history.txt"
+;  set station-name ["Cape_Point" "Cape_Town" "Ct_AWS" "Excelsior_Ceres" "Malmesbury" "Molteno_Reservoir" "Paarl"
+;                    "Porterville" "Robbeneiland" "Slangkop" "Strand" "Worcester"]
+  set station-name ["Breed_Valley" "Langberg" "Witzenberg" "Swartland" "Drakenstein" "Cape_Town" "Stellenbosch"]
+  ; initial read in for rainfall, unit is mm/month
+  ; for temp new unit is in celsius, original model input is farenheit. the mean temp is changed to celsius as well
+  ; for sw is in inches
+;  file-open "rainfall_history.txt"
+  file-open Rain_txt
 ;  file-open "palmer.txt"
   let j 0
   while [not file-at-end?]
@@ -1033,7 +1623,9 @@ to load-rain-temp-history
 ;    set rain-history lput file-read-line rain-history
 
 ;the other approach to read file one by one
-    while [ i < 121 ]
+;    new file is from 2009 to 2100 this is 1104 time steps therefore change 121 to 1105
+;    while [ i < 121 ]
+    while [ i < 1105 ]    ;
     [
       let rain-i file-read
       set rain-history lput rain-i rain-history
@@ -1057,7 +1649,9 @@ to load-rain-temp-history
   ]
   file-close
 
-  file-open "temperature_history.txt"
+;  file-open "temperature_history.txt" ;og file-loading code
+
+  file-open Temp_txt
   while [not file-at-end?]
   [
     let i 1
@@ -1069,7 +1663,8 @@ to load-rain-temp-history
 ;    set rain-history lput file-read-line rain-history
 
 ;the other approach to read file one by one
-    while [ i < 121]
+;    while [ i < 121]
+    while [ i < 1105 ]
     [
       let temp-i file-read
       set temp-history lput temp-i temp-history
@@ -1086,7 +1681,10 @@ to load-rain-temp-history
 
   file-close
 
-  file-open "SW_history.txt"
+
+;  file-open "SW_history.txt"
+
+  file-open SW_txt
   while [not file-at-end?]
   [
     let i 1
@@ -1098,7 +1696,8 @@ to load-rain-temp-history
 ;    set rain-history lput file-read-line rain-history
 
 ;the other approach to read file one by one
-    while [ i < 121]
+;    while [ i < 121]
+    while [ i < 1105 ]
     [
       let SW-i file-read
       set SW-history lput SW-i SW-history
@@ -1669,17 +2268,17 @@ Monthly domestic water usage reduction
 Month
 Reduction
 0.0
-121.0
+120.0
 0.0
-1.0
+100.0
 false
 false
 "" ""
 PENS
-"Poor" 1.0 0 -817084 true "" "plot reduction-30k"
-"Less-Poor" 1.0 0 -1184463 true "" "plot reduction-57k"
-"Average" 1.0 0 -13345367 true "" "plot reduction-117k"
-"Rich" 1.0 0 -11221820 true "" "plot reduction-200k"
+"Poor" 1.0 0 -817084 true "" "plot (1 - reduction-30k) * 100"
+"Less-Poor" 1.0 0 -1184463 true "" "plot (1 - reduction-57k) * 100"
+"Average" 1.0 0 -13345367 true "" "plot (1 - reduction-117k) * 100"
+"Rich" 1.0 0 -11221820 true "" "plot (1 - reduction-200k) * 100"
 
 PLOT
 660
@@ -1705,7 +2304,7 @@ INPUTBOX
 325
 512
 demand-increase-rate
-0.0
+0.001
 1
 0
 Number
@@ -1719,11 +2318,98 @@ demand-increase-rate
 demand-increase-rate
 0
 0.05
-0.0
+0.001
 0.001
 1
 NIL
 HORIZONTAL
+
+INPUTBOX
+1
+177
+152
+237
+Scenario
+3.0
+1
+0
+Number
+
+PLOT
+464
+662
+664
+812
+Monthly Water Bill
+Month
+Rand
+0.0
+120.0
+0.0
+100.0
+true
+false
+"" ""
+PENS
+"Poor" 1.0 0 -2674135 true "" "plot bill-30k"
+"Less-Poor" 1.0 0 -1184463 true "" "plot bill-57k"
+"Average" 1.0 0 -14070903 true "" "plot bill-117k"
+"Rich" 1.0 0 -11221820 true "" "plot bill-200k"
+
+INPUTBOX
+6
+645
+155
+705
+profit
+0.04
+1
+0
+Number
+
+INPUTBOX
+7
+709
+156
+769
+new-normal-reduction
+0.02
+1
+0
+Number
+
+INPUTBOX
+188
+579
+417
+639
+Rain_txt
+Rain_history_wineland_Model1.txt
+1
+0
+String
+
+INPUTBOX
+189
+704
+418
+764
+SW_txt
+SW_history_wineland_Model1.txt
+1
+0
+String
+
+INPUTBOX
+188
+641
+417
+701
+Temp_txt
+Temp_history_wineland_Model1.txt
+1
+0
+String
 
 @#$#@#$#@
 # Purpose
