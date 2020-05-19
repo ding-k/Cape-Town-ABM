@@ -176,15 +176,15 @@ to setup
     set volume-this-month 833388
   ]
   create-SRmanagers 1 [set generation-capacity 180]
-;  set dam-inflow-monthly [-3946  -4534 -15426  18535  30979 207643 118213  45156  30054  31341  16926  13210 -11892 -13524   8313
-;    39344  54305 109470  62115  51845  39288  30146  29651   1922 -11503  -3371  -9852  15244  29656 136839
-;    111435  76244  72084  24522   6834   5097  -9201 -13016 -11072  28943  28306  67024 173508 185630  94650
-;    31398  16158 -11437 -10866  -4691   -764  28554  32333 150717 144549 104123  31837  17705  43953  -6785
-;    25068  -4331  -8691  19009  45421 189041 101325  32223  13062   6382  -1243  -3809  -4902  12724 -16563
-;    -13051 -11433  56369 116734 115931  37017  38021 -16844 -12148   3047 -16435   8999  19227  20857  68766
-;    144368 105964  51648  41917 -10343 -12876   -562  -2569   -452   -589  -4942  51382  53879  77581  56702
-;    30685   1435   9823   7163  25645   3130  10079  64453 197680  91926 113151 105600   8604 -11230   1373]
-  set dam-inflow-monthly [-3946]
+  set dam-inflow-monthly [-3946  -4534 -15426  18535  30979 207643 118213  45156  30054  31341  16926  13210 -11892 -13524   8313
+    39344  54305 109470  62115  51845  39288  30146  29651   1922 -11503  -3371  -9852  15244  29656 136839
+    111435  76244  72084  24522   6834   5097  -9201 -13016 -11072  28943  28306  67024 173508 185630  94650
+    31398  16158 -11437 -10866  -4691   -764  28554  32333 150717 144549 104123  31837  17705  43953  -6785
+    25068  -4331  -8691  19009  45421 189041 101325  32223  13062   6382  -1243  -3809  -4902  12724 -16563
+    -13051 -11433  56369 116734 115931  37017  38021 -16844 -12148   3047 -16435   8999  19227  20857  68766
+    144368 105964  51648  41917 -10343 -12876   -562  -2569   -452   -589  -4942  51382  53879  77581  56702
+    30685   1435   9823   7163  25645   3130  10079  64453 197680  91926 113151 105600   8604 -11230   1373]
+
   set municipal-water-use [31837 32620 34875 30150 26722 25140 25947 26722 26040 27652 31050 33945 35588 31640 34348 28830 27714
     24180 23901 24583 24570 28427 28650 34131 35650 32144 35309 30450 26164 25470 24304 24800 24210 27652
     29010 32302 33883 34104 34689 29730 27063 23790 23467 23653 23730 26629 28230 32612 35061 31444 32829
@@ -246,8 +246,7 @@ to setup
     5203.2705  3078.8421  3101.1490   484.5671  9410.0578  1296.1948]
 
   set month-ratio [1.1641153 1.2207191 1.1694553 1.0487718 0.9280883 0.8533286 0.8319687 0.8426486 0.8576006 0.9409042 1.0231399 1.1192595] ;this is month to month ratio compared to annual average
-;  set month-mean-temp [71 72 69 64 60 56 55 56 58 62 66 69]
-  set month-mean-temp [21.7 22.2 20.6 17.8 15.6 13.3 12.8 13.3 14.4 16.7 18.9 20.6]
+  set month-mean-temp [71 72 69 64 60 56 55 56 58 62 66 69]
   set month-max-temp [80 81 79 74 69 65 64 65 67 72 75 79]
   let ward-index 1
   create-wards 94 [
@@ -345,17 +344,12 @@ to go
     set year year + 1
     let current-pop (population * (1 + growth-rate))
     set population current-pop
-    if ticks > 118
-    [set ag-water-use sentence ag-water-use [30892	29393	26748	14280	1659	805	806	806	805	4123	8900	24671]
-     set days-in-month sentence days-in-month [31 28 31 30 31 30 31 31 30 31 30 31]
-    ]
   ]
   []
-  print(ticks)
 
   tick ;total month
 ;  set tickss ticks
-;  if ticks = 120   [stop]
+  if ticks = 120   [stop]
 
 end
 
@@ -473,13 +467,8 @@ to scenario-two
   let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
   ;calculate municipal demand we use average monthly city demand predrought. Initial model in the wsc paper
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  let ID item ticks individual-demand
-  let ID 200
-  ifelse ticks > 119
-  [set ID 200]
-  [set ID item ticks individual-demand]
-
-
+  let ID item ticks individual-demand
+  print ID
   print "individual-demand"
   let DAY item ticks days-in-month
   print DAY
@@ -748,10 +737,7 @@ to scenario-three ; set free water for indigenous households
   let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
   ;calculate municipal demand we use average monthly city demand predrought. Initial model in the wsc paper
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  let ID 200
-  ifelse ticks > 119
-  [set ID 200]
-  [set ID item ticks individual-demand]
+  let ID item ticks individual-demand
   print ID
   print "individual-demand"
   let DAY item ticks days-in-month
@@ -1030,7 +1016,7 @@ to scenario-three ; set free water for indigenous households
   set mu-allocation-monthly lput mu-allocation-this-month mu-allocation-monthly
   set generation-history lput ([actual-generation] of one-of SRmanagers) generation-history
   set water-price-history lput water-price-this-month water-price-history
-; commeent out update reservoir because this process is now done at the big six
+
   update-reservoir-elevation
 end
 
@@ -1080,10 +1066,7 @@ to scenario-four
   let ag-D last total-irrigation-demand-monthly + (share-other-crops-irrigation * (item ticks ag-water-use)) ;updated wine grapes irrigation demand + the rest of the water
   ;calculate municipal demand we use average monthly city demand predrought. Initial model in the wsc paper
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  let ID 200
-  ifelse ticks > 119
-  [set ID 200]
-  [set ID item ticks individual-demand]
+  let ID item ticks individual-demand
   print ID
   print "individual-demand"
 
@@ -1210,9 +1193,7 @@ to scenario-four
   update-reservoir-elevation
 end
 
-to-report vol
-  report total-allocation-this-month
-end
+
 
 to-report bill-30k
   report mean [water-bill-this-month] of wards with [income = 30000]
@@ -1402,19 +1383,12 @@ to irrigate-land
   ;Voëlvlei Reservoir, TR/5 stands for the Theewaterkloof Reservoir, SR/6 represents Steenbras Reservoir, C/7 Stands for Cape Town,
   ;SW/8 stands for Swartland, D/9 stands for Drakenstein, S/10 stands for Stellenbosch, B/11 stands for Breede Valley, L/12 stands for Langeberg,
   ;W/13 stands for Witzenberg
-
-  ;The irrigation logic is to first ask the weatherman to set the soil water deficit of the month to SW-this-month,
-  ;whoever (winelands) follow the weather man will have its SW.
-  ;To change the Weathermans to the wine regions and Cape Town.
-  ; station-names: ["Breed_Valley" "Langberg" "Witzenberg" "Swartland" "Drakenstein" "Cape_Town" "Stellenbosch"]
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"]) ;original code
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Breed_Valley"]) ;og code Worcester was used
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Worcester"])
   [
         set SW-this-month item ticks SW-monthly
-  ]
 
+  ]
   ask patches with [landtype = 11] ;for breede valley
   [
 
@@ -1431,14 +1405,6 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month [irrigation-demand] of one-of patches with [landtype = 11]
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Langberg"]) ;og code Worcester was used
-  [
-        set SW-this-month item ticks SW-monthly
-  ]
-
   ask patches with [landtype = 12] ; for langeberg
   [
     set SWD AWC - SW-this-month
@@ -1454,14 +1420,12 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 12]
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Witzenberg"]) ;og code porterville was used
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Porterville"])
   [
       set SW-this-month item ticks SW-monthly
-  ]
 
+  ]
   ask patches with [landtype = 13] ; for Witzenberg
   [
 
@@ -1478,14 +1442,12 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 13]
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Malmesbury"]); og code malsebury was used for swartland
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Swartland"])
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Malmesbury"])
   [
       set SW-this-month item ticks SW-monthly
-  ]
 
+  ]
   ask patches with [landtype = 8] ; for Swartland
   [
 
@@ -1502,10 +1464,8 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 8]
-;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"])
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Drakenstein"])
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Paarl"])
   [
       set SW-this-month item ticks SW-monthly
 
@@ -1527,8 +1487,7 @@ to irrigate-land
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 9]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  ask Weatherman (item 0 [who] of Weathermans with [identity = "Ct_AWS"])
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Cape_Town"])
+  ask Weatherman (item 0 [who] of Weathermans with [identity = "Ct_AWS"])
   [
       set SW-this-month item ticks SW-monthly
 
@@ -1548,12 +1507,7 @@ to irrigate-land
     ]
   ]
   set total-irrigation-demand-this-month total-irrigation-demand-this-month + [irrigation-demand] of one-of patches with [landtype = 7]
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ask Weatherman (item 0 [who] of Weathermans with [identity = "Stellenbosch"])
-  [
-      set SW-this-month item ticks SW-monthly
-  ]
-  ask patches with [landtype = 10] ; for Stellenbosch
+    ask patches with [landtype = 10] ; for Stellenbosch
   [
     set SWD AWC - SW-this-month
     if SWD < 0 [set SWD 0]
@@ -1602,14 +1556,9 @@ end
 
 to load-rain-temp-history
   let station-name []
-;  set station-name ["Cape_Point" "Cape_Town" "Ct_AWS" "Excelsior_Ceres" "Malmesbury" "Molteno_Reservoir" "Paarl"
-;                    "Porterville" "Robbeneiland" "Slangkop" "Strand" "Worcester"]
-  set station-name ["Breed_Valley" "Langberg" "Witzenberg" "Swartland" "Drakenstein" "Cape_Town" "Stellenbosch"]
-  ; initial read in for rainfall, unit is mm/month
-  ; for temp new unit is in celsius, original model input is farenheit. the mean temp is changed to celsius as well
-  ; for sw is in inches
-;  file-open "rainfall_history.txt"
-  file-open Rain_txt
+  set station-name ["Cape_Point" "Cape_Town" "Ct_AWS" "Excelsior_Ceres" "Malmesbury" "Molteno_Reservoir" "Paarl"
+                    "Porterville" "Robbeneiland" "Slangkop" "Strand" "Worcester"]
+  file-open "rainfall_history.txt"
 ;  file-open "palmer.txt"
   let j 0
   while [not file-at-end?]
@@ -1623,9 +1572,7 @@ to load-rain-temp-history
 ;    set rain-history lput file-read-line rain-history
 
 ;the other approach to read file one by one
-;    new file is from 2009 to 2100 this is 1104 time steps therefore change 121 to 1105
-;    while [ i < 121 ]
-    while [ i < 1105 ]    ;
+    while [ i < 121 ]
     [
       let rain-i file-read
       set rain-history lput rain-i rain-history
@@ -1649,9 +1596,7 @@ to load-rain-temp-history
   ]
   file-close
 
-;  file-open "temperature_history.txt" ;og file-loading code
-
-  file-open Temp_txt
+  file-open "temperature_history.txt"
   while [not file-at-end?]
   [
     let i 1
@@ -1663,8 +1608,7 @@ to load-rain-temp-history
 ;    set rain-history lput file-read-line rain-history
 
 ;the other approach to read file one by one
-;    while [ i < 121]
-    while [ i < 1105 ]
+    while [ i < 121]
     [
       let temp-i file-read
       set temp-history lput temp-i temp-history
@@ -1681,10 +1625,7 @@ to load-rain-temp-history
 
   file-close
 
-
-;  file-open "SW_history.txt"
-
-  file-open SW_txt
+  file-open "SW_history.txt"
   while [not file-at-end?]
   [
     let i 1
@@ -1696,8 +1637,7 @@ to load-rain-temp-history
 ;    set rain-history lput file-read-line rain-history
 
 ;the other approach to read file one by one
-;    while [ i < 121]
-    while [ i < 1105 ]
+    while [ i < 121]
     [
       let SW-i file-read
       set SW-history lput SW-i SW-history
@@ -2210,7 +2150,7 @@ INPUTBOX
 151
 512
 water-price
-5.2
+8.018780487804879
 1
 0
 Number
@@ -2330,7 +2270,7 @@ INPUTBOX
 152
 237
 Scenario
-3.0
+4.0
 1
 0
 Number
@@ -2377,39 +2317,6 @@ new-normal-reduction
 1
 0
 Number
-
-INPUTBOX
-188
-579
-417
-639
-Rain_txt
-Rain_history_wineland_Model1.txt
-1
-0
-String
-
-INPUTBOX
-189
-704
-418
-764
-SW_txt
-SW_history_wineland_Model1.txt
-1
-0
-String
-
-INPUTBOX
-188
-641
-417
-701
-Temp_txt
-Temp_history_wineland_Model1.txt
-1
-0
-String
 
 @#$#@#$#@
 # Purpose
