@@ -52,7 +52,11 @@ globals
 
   avg-V
 
+  ;policy-scenario
+;  Scenario
+
   ;store water price of the month
+;  water-price
   water-price-this-month
   water-price-history
 
@@ -298,7 +302,7 @@ to setup
   let ward-index 1
   create-wards 94 [
     set ward-id ward-index
-    set households-in-ward item (ward-id - 1) household-list
+    set households-in-ward item (ward-id - 1) household-list * Population-ratio
     set domestic-demand item (ward-id - 1) domestic-demand-list / 1000 ; just for intial setup, change to previous line once have real data calculated covert number from kl to ml per household per day
     set other-municipal-demand item (ward-id - 1) other-municipal-demand-list / 1000
     set income item (ward-id - 1) income-list
@@ -340,27 +344,27 @@ to setup
   ] ; set up the water users for 94 wards
   if Scenario = 4
   [let desal-cost 36
-  let gw-cost 7.5
-  let sw-cost 5
-  let wwr-cost 7.5
+    let gw-cost 7.5
+    let sw-cost 5
+    let wwr-cost 7.5
 
-  let desal-energy-consumption 4
-  let wwr-energy-consumption 2
+    let desal-energy-consumption 4
+    let wwr-energy-consumption 2
 
-  let sw-existing-capacity 1350
-  let desal-capacity 120
-  let gw-capacity 100
-  let sw-added-capacity 60
-  let wwr-capacity 70; wastewater reuse
-  set total-added-capacity (wwr-capacity + desal-capacity  + gw-capacity); MLD the added capacity does not include surface water, the added surface water is reflected in the expanded dam storage capacity
-; let added-volume total-added-capacity; from MLD to monthly inflow
-  set new-cost (gw-cost * gw-capacity + desal-cost * desal-capacity + sw-cost * (sw-added-capacity + sw-existing-capacity) + wwr-cost * wwr-capacity) / (total-added-capacity + sw-existing-capacity)
-  print new-cost
-  set total-energy-consumption (desal-energy-consumption * desal-capacity * 1000 + wwr-energy-consumption * wwr-capacity * 1000) / 1000 ; convert from per kL to per ML and from kwh to mwh
-  print total-energy-consumption   ; unit in MW
-  print "mwh per day"
-  set water-price new-cost * (1 + profit)
-  print water-price
+    let sw-existing-capacity 1350
+    let desal-capacity 120
+    let gw-capacity 100
+    let sw-added-capacity 60
+    let wwr-capacity 70; wastewater reuse
+    set total-added-capacity (wwr-capacity + desal-capacity  + gw-capacity); MLD the added capacity does not include surface water, the added surface water is reflected in the expanded dam storage capacity
+                                                                           ; let added-volume total-added-capacity; from MLD to monthly inflow
+    set new-cost (gw-cost * gw-capacity + desal-cost * desal-capacity + sw-cost * (sw-added-capacity + sw-existing-capacity) + wwr-cost * wwr-capacity) / (total-added-capacity + sw-existing-capacity)
+    print new-cost
+    set total-energy-consumption (desal-energy-consumption * desal-capacity * 1000 + wwr-energy-consumption * wwr-capacity * 1000) / 1000 ; convert from per kL to per ML and from kwh to mwh
+    print total-energy-consumption   ; unit in MW
+    print "mwh per day"
+    set water-price new-cost * (1 + profit)
+    print water-price
   ]
 
 
@@ -389,6 +393,8 @@ to go
     ifelse Scenario = 2
     [
       scenario-two
+      ;test water bill
+      print ([water-bill-this-month] of wards with [income = 30000])
     ];scenario 2
     [
       ifelse Scenario = 3
@@ -730,11 +736,22 @@ to scenario-two
       let reduction (1 - (abs (V / V-normal)))
       print "reduction target"
       print reduction
+;      for calibration only
+;      set reduction 0
       set reduction-this-month reduction
       ; check reduction level, and make reduction a sub-model
 
       ;      let reduction (1 - (abs (RF-this-year / (RF-last-year) ) ) )
-      let new-price (water-price - (water-price * reduction / water-price-elasticity))
+      ; this following commented code is use price elasticity to calculate new water price
+      ;      let Q1-minus-Q0 (1 - reduction) - 1
+;      let Q1-plus-Q0 (1 - reduction) + 1
+;      let deltaQ Q1-minus-Q0 / Q1-plus-Q0
+;      ;let new-price (water-price - (water-price * reduction / water-price-elasticity))
+;      let new-price (deltaQ + water-price-elasticity) / (water-price-elasticity - deltaQ) * water-price
+      ; water price as a linear function of reduction
+;      let new-price K-price * reduction + water-price
+      ; new price is calculated based
+      let new-price water-price * ((1 - reduction) / 1) ^ (1 / water-price-elasticity)
 
 
       set water-price-this-month new-price
@@ -756,6 +773,7 @@ to scenario-two
         set other-municipal-usage (other-municipal-demand * (item (ticks) days-in-month) * (item (month - 1) month-ratio)) * (1 - reduction)
         ;; ask the water demand to change
         let domestic-demand-current-month domestic-demand
+
         if is-hot? = TRUE
         [
           ifelse income < 100000
@@ -766,18 +784,35 @@ to scenario-two
             ;do nothing
           ]
         ]
-        let change-in-price (new-price - water-price)
+
+        ;let change-in-price (new-price - water-price)
+
         let month-demand (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
-        set domestic-usage (month-demand + month-demand * change-in-price * ep / water-price)
+
+        ; calculate original demand in month based on disggregation of annual water usage
+;        let month-demand (domestic-demand-current-month * households-in-ward  * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
+;
+
+;        set domestic-usage (month-demand + month-demand * change-in-price * ep / water-price)
+        ; midpoint method
+;        let deltaP (new-price - water-price) / (new-price + water-price)
+;        set domestic-usage month-demand * (1 + ep * deltaP) / (1 - ep * deltaP)
+
+        ; Integral method
+        set domestic-usage month-demand *  ( new-price / water-price ) ^ ep
+
         if domestic-usage < 0
-        [set domestic-usage 0]
+        [
+          set domestic-usage 0
+        ]
         ;calculate reduction ratio for the wards,
         set reduction-household (month-demand - domestic-usage) / month-demand
 
         ; calculate water bill for each household
-        let individual-usage domestic-usage / households-in-ward
-        set water-bill-this-month individual-usage * new-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
-      ]
+;        let individual-usage domestic-usage / households-in-ward
+        set water-bill-this-month (domestic-usage / households-in-ward) * new-price * 1000 ; multiply by 1000 because the water price is in kl and usage is in ML
+
+      ];end of ask wards
       let TOT-household-usage sum [ domestic-usage ] of wards
       print "total household usage under restriction"
       print TOT-household-usage
@@ -1028,7 +1063,11 @@ to scenario-three ; set free water for indigenous households
       let reduction (1 - (abs (V / V-normal)))
       set reduction-this-month reduction
       ;      let reduction (1 - (abs (RF-this-year / (RF-last-year) ) ) )
-      let new-price water-price - water-price * reduction / water-price-elasticity
+;      let new-price water-price - water-price * reduction / water-price-elasticity
+;
+      let new-price water-price * ((1 - reduction) / 1) ^ (1 / water-price-elasticity)
+
+
       set water-price-this-month new-price
 ;      set water-price-history lput new-price water-price-history
 
@@ -1055,9 +1094,11 @@ to scenario-three ; set free water for indigenous households
             ;do nothing
           ]
         ]
-        let change-in-price (new-price - water-price)
+;        let change-in-price (new-price - water-price)
         let month-demand (domestic-demand-current-month  * households-in-ward * (1 + growth-rate) ^ (year - 2009) * (item (ticks) days-in-month) * (item (month - 1) month-ratio) )
-        set domestic-usage (month-demand + month-demand * change-in-price * ep / water-price)
+
+;        set domestic-usage (month-demand + month-demand * change-in-price * ep / water-price)
+        set domestic-usage month-demand *  ( new-price / water-price ) ^ ep
 
         ;calculate reduction ratio for the wards,
         if income < 30001
@@ -1065,9 +1106,12 @@ to scenario-three ; set free water for indigenous households
           if domestic-usage / households-in-ward < (6 / 1000 )
           [set domestic-usage (6 / 1000 ) * households-in-ward ]; give indiginous households free basic water even under drought conditions
         ];free water for 6 kl
+
         set reduction-household (month-demand - domestic-usage) / month-demand
+
         if reduction-household < 0
         [set reduction-household 0]
+
         ifelse income < 30001
         [
           let individual-usage domestic-usage / households-in-ward
@@ -1079,6 +1123,7 @@ to scenario-three ; set free water for indigenous households
         ]
 
       ]
+
       let TOT-household-usage sum [ domestic-usage ] of wards
 ;      print TOT-household-usage
 ;      print "total household usage under restriction"
@@ -2304,17 +2349,6 @@ share-other-crops-irrigation
 0
 Number
 
-INPUTBOX
-2
-452
-151
-512
-water-price
-8.018780487804879
-1
-0
-Number
-
 MONITOR
 919
 597
@@ -2328,9 +2362,9 @@ last water-price-history
 
 INPUTBOX
 2
-514
+517
 151
-574
+577
 Irrigation-Efficiency
 0.7
 1
@@ -2424,17 +2458,6 @@ demand-increase-rate
 NIL
 HORIZONTAL
 
-INPUTBOX
-1
-177
-152
-237
-Scenario
-4.0
-1
-0
-Number
-
 PLOT
 464
 662
@@ -2518,6 +2541,50 @@ INPUTBOX
 705
 growth-rate
 0.08
+1
+0
+Number
+
+INPUTBOX
+200
+783
+429
+843
+K-price
+100.0
+1
+0
+Number
+
+INPUTBOX
+7
+776
+157
+836
+Population-ratio
+1.0
+1
+0
+Number
+
+INPUTBOX
+-1
+177
+148
+237
+Scenario
+2.0
+1
+0
+Number
+
+INPUTBOX
+3
+454
+152
+514
+water-price
+0.0
 1
 0
 Number
